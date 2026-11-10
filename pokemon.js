@@ -3,32 +3,29 @@ const listWrapper = document.querySelector(".list-wrapper");
 const searchInput = document.querySelector("#search-input");
 const numberFilter = document.querySelector("#number");
 const nameFilter = document.querySelector("#name");
+const typeFilter = document.querySelector("#type");
 const notFoundMessage = document.querySelector("#not-found-message");
 
 let allPokemons = [];
 
 fetch(`https://pokeapi.co/api/v2/pokemon?limit=${MAX_POKEMON}`)
   .then((response) => response.json())
-  .then((data) => {
-    allPokemons = data.results;
-    displayPokemons(allPokemons);
-  });
+  .then(async (data) => {
+    allPokemons = await Promise.all(
+      data.results.map(async (pokemon) => {
+        const response = await fetch(pokemon.url);
+        const details = await response.json();
 
-async function fetchPokemonDataBeforeRedirect(id) {
-  try {
-    const [pokemon, pokemonSpecies] = await Promise.all([
-      fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then((res) =>
-        res.json()
-      ),
-      fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`).then((res) =>
-        res.json()
-      ),
-    ]);
-    return true;
-  } catch (error) {
-    console.error("Failed to fetch Pokemon data before redirect");
-  }
-}
+        return {
+          ...pokemon,
+          primaryType: details.types[0]?.type.name ?? "unknown",
+        };
+      })
+    );
+
+    handleSearch();
+  })
+  .catch((error) => console.error("Could not load Pokémon:", error));
 
 function displayPokemons(pokemon) {
   listWrapper.innerHTML = "";
@@ -60,23 +57,51 @@ function displayPokemons(pokemon) {
   });
 }
 
-searchInput.addEventListener("keyup", handleSearch);
+async function fetchPokemonDataBeforeRedirect(id) {
+  try {
+    const [pokemon, pokemonSpecies] = await Promise.all([
+      fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then((res) =>
+        res.json()
+      ),
+      fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`).then((res) =>
+        res.json()
+      ),
+    ]);
+    return true;
+  } catch (error) {
+    console.error("Failed to fetch Pokemon data before redirect");
+    return false;
+  }
+}
+
+searchInput.addEventListener("input", handleSearch);
+document
+  .querySelectorAll('input[name="filters"]')
+  .forEach((radio) => radio.addEventListener("change", handleSearch));
 
 function handleSearch() {
-  const searchTerm = searchInput.value.toLowerCase();
-  let filteredPokemons;
+  const searchTerm = searchInput.value.trim().toLowerCase();
+  let filteredPokemons = [...allPokemons];
 
   if (numberFilter.checked) {
-    filteredPokemons = allPokemons.filter((pokemon) => {
+    filteredPokemons = filteredPokemons.filter((pokemon) => {
       const pokemonID = pokemon.url.split("/")[6];
       return pokemonID.startsWith(searchTerm);
     });
   } else if (nameFilter.checked) {
-    filteredPokemons = allPokemons.filter((pokemon) =>
+    filteredPokemons = filteredPokemons.filter((pokemon) =>
       pokemon.name.toLowerCase().startsWith(searchTerm)
     );
-  } else {
-    filteredPokemons = allPokemons;
+  } else if (typeFilter.checked) {
+    filteredPokemons = filteredPokemons.filter((pokemon) =>
+      pokemon.primaryType.toLowerCase().startsWith(searchTerm)
+    );
+
+    filteredPokemons.sort(
+      (a, b) =>
+        a.primaryType.localeCompare(b.primaryType) ||
+        a.name.localeCompare(b.name)
+    );
   }
 
   displayPokemons(filteredPokemons);
@@ -93,12 +118,10 @@ closeButton.addEventListener("click", clearSearch);
 
 function clearSearch() {
   searchInput.value = "";
-  displayPokemons(allPokemons);
-  notFoundMessage.style.display = "none";
+  handleSearch();
 }
 
-//hide the loader and show content once
 function finishLoading() {
-  document .getElementById('loader').class
-  document .getElementById('content').class
+  document.getElementById("loader").classList.add("hidden");
+  document.getElementById("content").classList.remove("hidden");
 }
