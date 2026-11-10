@@ -153,7 +153,7 @@ body {
 }
 
 .search-wrap > input {
-  width: 60%;
+  width: 50%;
   border: none;
 }
 
@@ -300,7 +300,7 @@ body {
 }
 
 footer {
-  background-color:#9b808023;
+  background-color:transparent;
   color:#070707;
   padding: 1 rem;
   height: 50%;
