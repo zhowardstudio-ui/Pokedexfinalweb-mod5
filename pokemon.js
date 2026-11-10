@@ -84,9 +84,13 @@ function handleSearch() {
   let filteredPokemons = [...allPokemons];
 
   if (numberFilter.checked) {
+    // Keep number order, but allow searching by either ID or Pokémon name.
     filteredPokemons = filteredPokemons.filter((pokemon) => {
       const pokemonID = pokemon.url.split("/")[6];
-      return pokemonID.startsWith(searchTerm);
+      return (
+        pokemonID.startsWith(searchTerm) ||
+        pokemon.name.toLowerCase().startsWith(searchTerm)
+      );
     });
   } else if (nameFilter.checked) {
     filteredPokemons = filteredPokemons.filter((pokemon) =>
